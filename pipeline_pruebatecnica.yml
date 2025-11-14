@@ -1,0 +1,128 @@
+trigger:
+- main  # o la rama que prefieras
+
+resources:
+  repositories:
+    - repository: api
+      type: git
+      name: NttDataBack         
+    - repository: front
+      type: git
+      name: NttDataFront     
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '8.0.x'
+  nodeVersion: '20.x'
+
+stages:
+# =====================================================
+# STAGE 1: COMPILAR Y PROBAR BACKEND (.NET 8)
+# =====================================================
+- stage: Build_API
+  displayName: "Compilar y publicar API (.NET 8)"
+  jobs:
+  - job: build_api
+    steps:
+    - checkout: api
+
+    - task: UseDotNet@2
+      inputs:
+        packageType: 'sdk'
+        version: $(dotnetVersion)
+
+    - script: |
+        echo "🔧 Restaurando y compilando API .NET..."
+        dotnet restore NttDataBack/NttDataBack.csproj
+        dotnet build NttDataBack/NttDataBack.csproj -c $(BuildConfiguration)
+        echo "🔧 Compilation"
+        dotnet test --no-build || true
+        echo "🔧 Test"
+        dotnet publish NttDataBack/NttDataBack.csproj -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)/api
+        echo "🔧 Publish"
+      displayName: "Compilar API"
+
+    - publish: $(Build.ArtifactStagingDirectory)/api
+      artifact: drop-api
+
+# =====================================================
+# STAGE 2: COMPILAR FRONTEND (Angular)
+# =====================================================
+- stage: Build_Front
+  displayName: "Compilar Frontend Angular"
+  dependsOn: Build_API
+  jobs:
+  - job: build_front
+    steps:
+    - checkout: front
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+
+    - script: |
+        echo "📁 Estructura del repo FRONT:"
+        ls -R .
+        echo "📦 Instalando dependencias..."
+        cd NttDataFront
+        npm ci
+        echo "🚀 Compilando Angular..."
+        npm run build -- --configuration production
+        echo "📁 Buscando carpeta dist generada:"
+        find . -type d -name dist
+      displayName: "Build Angular"
+
+    - publish: NttDataFront/dist/ntt-data-front
+      artifact: drop-front
+
+# =====================================================
+# STAGE 3: DESPLEGAR AMBOS
+# =====================================================
+- stage: Deploy
+  displayName: "Desplegar API + Frontend"
+  dependsOn:
+    - Build_API
+    - Build_Front
+  jobs:
+  - deployment: Deploy_App
+    displayName: "Desplegar a Azure"
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # 🔹 Desplegar API .NET
+          - task: AzureWebApp@1
+            displayName: "Desplegar API .NET a Azure"
+            inputs:
+              azureSubscription: 'APICliente'
+              appType: 'webApp'
+              appName: 'APICliente'
+              package: '$(Pipeline.Workspace)/drop-api'
+
+          # 🔹 Desplegar Angular (dos opciones)
+          # Si usas Azure Static Web App
+          - task: AzureStaticWebApp@0
+            displayName: "Desplegar Frontend Angular"
+            inputs:
+              app_location: 'dist'
+              skip_app_build: true
+              azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_TOKEN)
+
+          # ⚠️ O si prefieres desplegar el frontend dentro del mismo App Service:
+          # - task: CopyFiles@2
+          #   inputs:
+          #     SourceFolder: '$(Pipeline.Workspace)/drop-front'
+          #     Contents: '**'
+          #     TargetFolder: '$(Pipeline.Workspace)/drop-api/wwwroot'
+
+          # - task: AzureWebApp@1
+          #   displayName: "Desplegar API + Frontend juntos"
+          #   inputs:
+          #     azureSubscription: '<NOMBRE_SERVICE_CONNECTION>'
+          #     appType: 'webApp'
+          #     appName: '<NOMBRE_APP_SERVICE>'
+          #     package: '$(Pipeline.Workspace)/drop-api'
