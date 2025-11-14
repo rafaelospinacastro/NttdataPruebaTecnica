@@ -14,3 +14,7 @@ Las versiones son las siguientes:
 Backend: NET 8
 Frontend: Angular 17.3.7
 Para que funcione correctamente debe tener estas versiones descargadas en el computador donde se correrá el back y en front.
+
+El pipeline se encuentra en el archivo -> pipeline_pruebatecnica.yml, que se encuentra en este proyecto.
+
+#No se puede poner publico lo hecho en azure devops ya que no se puede colocar en publico ningun proyecto, por eso se ponen en github los proyectos y los archivos.
