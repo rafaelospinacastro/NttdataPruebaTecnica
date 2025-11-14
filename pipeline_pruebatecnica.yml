@@ -1,5 +1,5 @@
 trigger:
-- main  # o la rama que prefieras
+- main  
 
 resources:
   repositories:
@@ -79,7 +79,7 @@ stages:
       artifact: drop-front
 
 # =====================================================
-# STAGE 3: DESPLEGAR AMBOS
+# STAGE 3: DESPLEGAR EN PRODUCCION
 # =====================================================
 - stage: Deploy
   displayName: "Desplegar API + Frontend"
@@ -104,25 +104,9 @@ stages:
               package: '$(Pipeline.Workspace)/drop-api'
 
           # 🔹 Desplegar Angular (dos opciones)
-          # Si usas Azure Static Web App
           - task: AzureStaticWebApp@0
             displayName: "Desplegar Frontend Angular"
             inputs:
               app_location: 'dist'
               skip_app_build: true
-              azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_TOKEN)
-
-          # ⚠️ O si prefieres desplegar el frontend dentro del mismo App Service:
-          # - task: CopyFiles@2
-          #   inputs:
-          #     SourceFolder: '$(Pipeline.Workspace)/drop-front'
-          #     Contents: '**'
-          #     TargetFolder: '$(Pipeline.Workspace)/drop-api/wwwroot'
-
-          # - task: AzureWebApp@1
-          #   displayName: "Desplegar API + Frontend juntos"
-          #   inputs:
-          #     azureSubscription: '<NOMBRE_SERVICE_CONNECTION>'
-          #     appType: 'webApp'
-          #     appName: '<NOMBRE_APP_SERVICE>'
-          #     package: '$(Pipeline.Workspace)/drop-api'
+              azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_TOKEN)          
