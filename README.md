@@ -17,4 +17,4 @@ Para que funcione correctamente debe tener estas versiones descargadas en el com
 
 El pipeline se encuentra en el archivo -> pipeline_pruebatecnica.yml, que se encuentra en este proyecto.
 
-# No se puede poner publico lo hecho en azure devops ya que por directiva de Microsoft no se puede poner publico ningun proyecto, por eso se ponen en github los proyectos y los archivos.
+## No se puede poner publico lo hecho en azure devops ya que por directiva de Microsoft no se puede poner publico ningun proyecto, por eso se ponen en github los proyectos y los archivos.
